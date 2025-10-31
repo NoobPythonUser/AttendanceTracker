@@ -9,6 +9,7 @@ A lightweight, single-page web application for university students to monitor at
 - **Quick status updates** – one-click Present/Absent buttons and pending state for newly added lectures.
 - **Attendance insights** – live attendance percentage, total attended count, and how many more lectures you can miss for the selected subject.
 - **Custom subject limits** – set how many lectures you can skip for each subject before risking a shortage.
+- **Built-in safeguards** – UniAttend blocks additional absences once a subject reaches its configured limit, so you never overshoot unintentionally.
 - **Local persistence** – all data is stored in your browser, so your plan survives refreshes.
 - **Responsive, aesthetic UI** – modern glassmorphism styling that stays crisp on desktops, tablets, and phones.
 
