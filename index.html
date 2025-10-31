@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UniAttend - Attendance Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="header-text">
+                <h1>UniAttend</h1>
+                <p>Track your lectures, stay above the attendance threshold, and master your semester.</p>
+            </div>
+            <div class="header-controls">
+                <label class="input-group">
+                    <span class="input-label">Subject absence limit</span>
+                    <input
+                        type="number"
+                        id="max-absences"
+                        min="0"
+                        value="3"
+                        disabled
+                        title="Select a subject to set its absence limit"
+                    />
+                </label>
+                <button id="apply-max" class="primary-button" disabled title="Select a subject first">Update</button>
+            </div>
+        </header>
+
+        <main class="content">
+            <section class="subject-panel">
+                <h2>Subjects</h2>
+                <form id="subject-form" class="card">
+                    <div class="field-group">
+                        <label for="subject-name">Subject name</label>
+                        <input type="text" id="subject-name" placeholder="e.g., Data Structures" required />
+                    </div>
+                    <div class="field-group">
+                        <label for="subject-code">Subject code (optional)</label>
+                        <input type="text" id="subject-code" placeholder="CSE200" />
+                    </div>
+                    <button type="submit" class="primary-button">Add Subject</button>
+                </form>
+
+                <ul id="subject-list" class="subject-list"></ul>
+            </section>
+
+            <section class="subject-detail" id="detail-section">
+                <div class="empty-state" id="empty-state">
+                    <h2>Select a subject to begin</h2>
+                    <p>Track attendance by adding lecture dates and marking presence.</p>
+                </div>
+
+                <div class="detail-wrapper hidden" id="detail-wrapper">
+                    <div class="detail-header">
+                        <div>
+                            <h2 id="detail-title"></h2>
+                            <p id="detail-code" class="detail-code"></p>
+                        </div>
+                        <div class="stats">
+                            <div class="stat">
+                                <span class="stat-label">Attendance %</span>
+                                <span class="stat-value" id="attendance-percent">0%</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Lectures Attended</span>
+                                <span class="stat-value" id="lectures-attended">0</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Remaining Allowance</span>
+                                <span class="stat-value" id="remaining-allowance">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="limit-banner hidden" id="limit-warning"></div>
+
+                    <form id="lecture-form" class="card lecture-form">
+                        <div class="field-group">
+                            <label for="lecture-date">Lecture date</label>
+                            <input type="date" id="lecture-date" required />
+                        </div>
+                        <div class="field-group">
+                            <label for="lecture-topic">Topic / notes</label>
+                            <input type="text" id="lecture-topic" placeholder="Optional notes" />
+                        </div>
+                        <button type="submit" class="primary-button">Add Lecture</button>
+                    </form>
+
+                    <div class="lectures-container">
+                        <div class="table-head">
+                            <span>Date</span>
+                            <span>Topic</span>
+                            <span>Status</span>
+                            <span>Actions</span>
+                        </div>
+                        <ul id="lecture-list" class="lecture-list"></ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <template id="subject-template">
+        <li class="subject-card">
+            <button class="subject-select">
+                <div class="subject-meta">
+                    <h3 class="subject-title"></h3>
+                    <span class="subject-code"></span>
+                </div>
+                <div class="subject-progress">
+                    <span class="subject-percent"></span>
+                    <div class="progress-bar"><div class="progress-fill"></div></div>
+                </div>
+            </button>
+            <button class="delete-subject" title="Delete subject">&times;</button>
+        </li>
+    </template>
+
+    <template id="lecture-template">
+        <li class="lecture-row">
+            <span class="lecture-date"></span>
+            <span class="lecture-topic"></span>
+            <span class="lecture-status"></span>
+            <div class="lecture-actions">
+                <button class="present-button">Present</button>
+                <button class="absent-button">Absent</button>
+                <button class="delete-lecture" title="Delete lecture">&times;</button>
+            </div>
+        </li>
+    </template>
+
+    <script type="module" src="scripts/app.js"></script>
+</body>
+</html>
