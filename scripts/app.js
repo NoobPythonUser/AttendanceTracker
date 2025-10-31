@@ -1,4 +1,14 @@
 const STORAGE_KEY = 'uniAttendState_v1';
+const DEFAULT_MAX_ABSENCES = 3;
+
+function getMaxAbsences(subject = null) {
+    if (!subject) {
+        return state.defaultMaxAbsences ?? DEFAULT_MAX_ABSENCES;
+    }
+    return typeof subject.maxAbsences === 'number'
+        ? subject.maxAbsences
+        : state.defaultMaxAbsences ?? DEFAULT_MAX_ABSENCES;
+}
 
 const elements = {
     subjectForm: document.getElementById('subject-form'),
@@ -18,6 +28,7 @@ const elements = {
     remainingAllowance: document.getElementById('remaining-allowance'),
     maxAbsences: document.getElementById('max-absences'),
     applyMax: document.getElementById('apply-max'),
+    limitWarning: document.getElementById('limit-warning'),
 };
 
 const templates = {
@@ -26,6 +37,12 @@ const templates = {
 };
 
 let state = loadState();
+if (typeof state.defaultMaxAbsences !== 'number') {
+    state.defaultMaxAbsences = DEFAULT_MAX_ABSENCES;
+}
+if (!Array.isArray(state.subjects)) {
+    state.subjects = [];
+}
 let selectedSubjectId = state.subjects[0]?.id ?? null;
 
 function generateId() {
@@ -40,22 +57,46 @@ function loadState() {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
+            const defaultMaxAbsences =
+                typeof parsed.defaultMaxAbsences === 'number'
+                    ? parsed.defaultMaxAbsences
+                    : typeof parsed.maxAbsences === 'number'
+                      ? parsed.maxAbsences
+                      : DEFAULT_MAX_ABSENCES;
+
+            const subjects = Array.isArray(parsed.subjects)
+                ? parsed.subjects.map((subject) => ({
+                      ...subject,
+                      lectures: Array.isArray(subject.lectures) ? subject.lectures : [],
+                      maxAbsences:
+                          typeof subject.maxAbsences === 'number'
+                              ? subject.maxAbsences
+                              : defaultMaxAbsences,
+                  }))
+                : [];
+
             return {
-                maxAbsences: parsed.maxAbsences ?? 3,
-                subjects: Array.isArray(parsed.subjects) ? parsed.subjects : [],
+                defaultMaxAbsences,
+                subjects,
             };
         } catch (error) {
             console.error('Failed to load attendance state', error);
         }
     }
     return {
-        maxAbsences: 3,
+        defaultMaxAbsences: DEFAULT_MAX_ABSENCES,
         subjects: [],
     };
 }
 
 function persistState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+            defaultMaxAbsences: state.defaultMaxAbsences,
+            subjects: state.subjects,
+        }),
+    );
 }
 
 function createSubject(name, code) {
@@ -64,6 +105,7 @@ function createSubject(name, code) {
         name,
         code,
         lectures: [],
+        maxAbsences: getMaxAbsences(),
     };
 }
 
@@ -86,16 +128,23 @@ function formatDate(dateString) {
 
 function calculateStats(subject) {
     if (!subject) {
-        return { total: 0, attended: 0, percentage: 0, remainingAllowance: state.maxAbsences };
+        return {
+            total: 0,
+            attended: 0,
+            percentage: 0,
+            remainingAllowance: getMaxAbsences(),
+            maxAbsences: getMaxAbsences(),
+        };
     }
 
+    const maxAbsences = getMaxAbsences(subject);
     const total = subject.lectures.length;
     const attended = subject.lectures.filter((lecture) => lecture.status === 'present').length;
     const absent = subject.lectures.filter((lecture) => lecture.status === 'absent').length;
     const percentage = total === 0 ? 0 : Math.round((attended / total) * 100);
-    const remainingAllowance = Math.max(state.maxAbsences - absent, 0);
+    const remainingAllowance = Math.max(maxAbsences - absent, 0);
 
-    return { total, attended, percentage, remainingAllowance };
+    return { total, attended, percentage, remainingAllowance, maxAbsences };
 }
 
 function sortLectures(lectures) {
@@ -155,6 +204,7 @@ function renderSubjectDetail() {
     if (!subject) {
         elements.emptyState.classList.remove('hidden');
         elements.detailWrapper.classList.add('hidden');
+        elements.limitWarning.classList.add('hidden');
         return;
     }
 
@@ -164,14 +214,32 @@ function renderSubjectDetail() {
     elements.detailTitle.textContent = subject.name;
     elements.detailCode.textContent = subject.code || 'No subject code';
 
-    const { attended, percentage, remainingAllowance } = calculateStats(subject);
+    const { attended, percentage, remainingAllowance, maxAbsences } = calculateStats(subject);
     elements.attendancePercent.textContent = `${percentage}%`;
     elements.lecturesAttended.textContent = `${attended}/${subject.lectures.length}`;
-    elements.remainingAllowance.textContent = `${remainingAllowance}`;
+    elements.remainingAllowance.textContent = `${remainingAllowance} of ${maxAbsences}`;
+
+    const totalAbsences = subject.lectures.filter((lecture) => lecture.status === 'absent').length;
+
+    if (remainingAllowance === 0) {
+        const overLimit = Math.max(totalAbsences - maxAbsences, 0);
+        if (maxAbsences === 0) {
+            elements.limitWarning.textContent = `Absence limit for ${subject.name} is set to zero. You will need to attend every lecture.`;
+        } else if (overLimit > 0) {
+            const lectureWord = overLimit === 1 ? 'lecture' : 'lectures';
+            elements.limitWarning.textContent = `Absence limit exceeded by ${overLimit} ${lectureWord}. Mark ${overLimit} ${lectureWord} as present to regain allowance.`;
+        } else {
+            elements.limitWarning.textContent = `Absence limit reached for ${subject.name}. Mark a lecture as present to regain allowance.`;
+        }
+        elements.limitWarning.classList.remove('hidden');
+    } else {
+        elements.limitWarning.classList.add('hidden');
+    }
 
     elements.lectureList.innerHTML = '';
 
     const sortedLectures = sortLectures(subject.lectures);
+    const subjectMaxAbsences = maxAbsences;
     const fragment = document.createDocumentFragment();
 
     sortedLectures.forEach((lecture) => {
@@ -195,6 +263,17 @@ function renderSubjectDetail() {
         });
 
         absentButton.addEventListener('click', () => {
+            if (lecture.status === 'absent') {
+                return;
+            }
+
+            const currentAbsences = subject.lectures.filter((item) => item.status === 'absent').length;
+            const limit = getMaxAbsences(subject);
+            if (currentAbsences >= limit) {
+                alert('Absence limit reached for this subject. Mark a lecture as present before adding more absences.');
+                return;
+            }
+
             lecture.status = 'absent';
             persistState();
             render();
@@ -207,6 +286,15 @@ function renderSubjectDetail() {
             persistState();
             render();
         });
+
+        const absencesIfMarked = totalAbsences + (lecture.status === 'absent' ? 0 : 1);
+        const limitReachedForRow = lecture.status !== 'absent' && absencesIfMarked > subjectMaxAbsences;
+        absentButton.disabled = limitReachedForRow;
+        if (limitReachedForRow) {
+            absentButton.title = 'Absence limit reached';
+        } else {
+            absentButton.removeAttribute('title');
+        }
 
         fragment.appendChild(lectureNode);
     });
@@ -221,8 +309,25 @@ function renderSubjectDetail() {
     elements.lectureList.appendChild(fragment);
 }
 
+function updateMaxAbsenceControls(subject) {
+    const hasSubject = Boolean(subject);
+    elements.maxAbsences.disabled = !hasSubject;
+    elements.applyMax.disabled = !hasSubject;
+
+    if (hasSubject) {
+        elements.maxAbsences.title = `Set how many lectures you can miss in ${subject.name}`;
+        elements.applyMax.title = `Save the absence limit for ${subject.name}`;
+    } else {
+        elements.maxAbsences.title = 'Select a subject to set its absence limit';
+        elements.applyMax.title = 'Select a subject first';
+    }
+}
+
 function render() {
-    elements.maxAbsences.value = state.maxAbsences;
+    const subject = state.subjects.find((item) => item.id === selectedSubjectId);
+    const maxAbsencesValue = getMaxAbsences(subject);
+    elements.maxAbsences.value = maxAbsencesValue;
+    updateMaxAbsenceControls(subject);
     renderSubjects();
     renderSubjectDetail();
 }
@@ -273,10 +378,17 @@ function onApplyMaxAbsences() {
     const value = parseInt(elements.maxAbsences.value, 10);
     if (Number.isNaN(value) || value < 0) {
         alert('Please enter a valid number greater than or equal to 0.');
-        elements.maxAbsences.value = state.maxAbsences;
+        render();
         return;
     }
-    state.maxAbsences = value;
+    const subject = state.subjects.find((item) => item.id === selectedSubjectId);
+    if (!subject) {
+        render();
+        return;
+    }
+
+    subject.maxAbsences = value;
+    state.defaultMaxAbsences = value;
     persistState();
     render();
 }
@@ -285,6 +397,12 @@ function init() {
     elements.subjectForm.addEventListener('submit', onAddSubject);
     elements.lectureForm.addEventListener('submit', onAddLecture);
     elements.applyMax.addEventListener('click', onApplyMaxAbsences);
+    elements.maxAbsences.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            onApplyMaxAbsences();
+        }
+    });
     render();
 }
 
