@@ -291,12 +291,25 @@ function renderSubjectDetail() {
     elements.lectureList.appendChild(fragment);
 }
 
+function updateMaxAbsenceControls(subject) {
+    const hasSubject = Boolean(subject);
+    elements.maxAbsences.disabled = !hasSubject;
+    elements.applyMax.disabled = !hasSubject;
+
+    if (hasSubject) {
+        elements.maxAbsences.title = `Set how many lectures you can miss in ${subject.name}`;
+        elements.applyMax.title = `Save the absence limit for ${subject.name}`;
+    } else {
+        elements.maxAbsences.title = 'Select a subject to set its absence limit';
+        elements.applyMax.title = 'Select a subject first';
+    }
+}
+
 function render() {
     const subject = state.subjects.find((item) => item.id === selectedSubjectId);
     const maxAbsencesValue = getMaxAbsences(subject);
     elements.maxAbsences.value = maxAbsencesValue;
-    elements.maxAbsences.disabled = !subject;
-    elements.applyMax.disabled = !subject;
+    updateMaxAbsenceControls(subject);
     renderSubjects();
     renderSubjectDetail();
 }
@@ -366,6 +379,12 @@ function init() {
     elements.subjectForm.addEventListener('submit', onAddSubject);
     elements.lectureForm.addEventListener('submit', onAddLecture);
     elements.applyMax.addEventListener('click', onApplyMaxAbsences);
+    elements.maxAbsences.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            onApplyMaxAbsences();
+        }
+    });
     render();
 }
 
