@@ -298,6 +298,24 @@ input:focus {
     box-shadow: var(--shadow);
 }
 
+.limit-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: var(--card-radius);
+    background: rgba(244, 63, 94, 0.18);
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    color: #ff5a78;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+}
+
+.limit-banner::before {
+    content: '\26A0';
+    font-size: 1.1rem;
+}
+
 .detail-code {
     color: var(--muted);
     margin: 4px 0 0;

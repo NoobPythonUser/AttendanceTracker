@@ -28,6 +28,7 @@ const elements = {
     remainingAllowance: document.getElementById('remaining-allowance'),
     maxAbsences: document.getElementById('max-absences'),
     applyMax: document.getElementById('apply-max'),
+    limitWarning: document.getElementById('limit-warning'),
 };
 
 const templates = {
@@ -203,6 +204,7 @@ function renderSubjectDetail() {
     if (!subject) {
         elements.emptyState.classList.remove('hidden');
         elements.detailWrapper.classList.add('hidden');
+        elements.limitWarning.classList.add('hidden');
         return;
     }
 
@@ -217,11 +219,27 @@ function renderSubjectDetail() {
     elements.lecturesAttended.textContent = `${attended}/${subject.lectures.length}`;
     elements.remainingAllowance.textContent = `${remainingAllowance} of ${maxAbsences}`;
 
+    const totalAbsences = subject.lectures.filter((lecture) => lecture.status === 'absent').length;
+
+    if (remainingAllowance === 0) {
+        const overLimit = Math.max(totalAbsences - maxAbsences, 0);
+        if (maxAbsences === 0) {
+            elements.limitWarning.textContent = `Absence limit for ${subject.name} is set to zero. You will need to attend every lecture.`;
+        } else if (overLimit > 0) {
+            const lectureWord = overLimit === 1 ? 'lecture' : 'lectures';
+            elements.limitWarning.textContent = `Absence limit exceeded by ${overLimit} ${lectureWord}. Mark ${overLimit} ${lectureWord} as present to regain allowance.`;
+        } else {
+            elements.limitWarning.textContent = `Absence limit reached for ${subject.name}. Mark a lecture as present to regain allowance.`;
+        }
+        elements.limitWarning.classList.remove('hidden');
+    } else {
+        elements.limitWarning.classList.add('hidden');
+    }
+
     elements.lectureList.innerHTML = '';
 
     const sortedLectures = sortLectures(subject.lectures);
-    const subjectMaxAbsences = getMaxAbsences(subject);
-    const totalAbsences = subject.lectures.filter((lecture) => lecture.status === 'absent').length;
+    const subjectMaxAbsences = maxAbsences;
     const fragment = document.createDocumentFragment();
 
     sortedLectures.forEach((lecture) => {
