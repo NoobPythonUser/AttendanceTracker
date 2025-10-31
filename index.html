@@ -17,18 +17,26 @@
                 <p>Track your lectures, stay above the attendance threshold, and master your semester.</p>
             </div>
             <div class="header-controls">
-                <label class="input-group">
-                    <span class="input-label">Subject absence limit</span>
-                    <input
-                        type="number"
-                        id="max-absences"
-                        min="0"
-                        value="3"
-                        disabled
-                        title="Select a subject to set its absence limit"
-                    />
-                </label>
-                <button id="apply-max" class="primary-button" disabled title="Select a subject first">Update</button>
+                <div class="admin-controls">
+                    <button id="admin-toggle" type="button" class="secondary-button" aria-pressed="false">
+                        Enter Admin Mode
+                    </button>
+                    <span id="admin-status" class="admin-status">Student view</span>
+                </div>
+                <div class="limit-controls">
+                    <label class="input-group">
+                        <span class="input-label">Subject absence limit</span>
+                        <input
+                            type="number"
+                            id="max-absences"
+                            min="0"
+                            value="3"
+                            disabled
+                            title="Select a subject to set its absence limit"
+                        />
+                    </label>
+                    <button id="apply-max" class="primary-button" disabled title="Select a subject first">Update</button>
+                </div>
             </div>
         </header>
 
@@ -46,6 +54,7 @@
                     </div>
                     <button type="submit" class="primary-button">Add Subject</button>
                 </form>
+                <p id="subject-lock-note" class="lock-note"></p>
 
                 <ul id="subject-list" class="subject-list"></ul>
             </section>
@@ -80,6 +89,35 @@
 
                     <div class="limit-banner hidden" id="limit-warning"></div>
 
+                    <section class="mascot-hub" aria-live="polite">
+                        <div class="mascot-display">
+                            <div
+                                id="mascot-character"
+                                class="pixel-mascot palette-ember accessory-none mood-neutral"
+                                role="img"
+                                aria-label="Attendance companion"
+                            >
+                                <span class="eye left"></span>
+                                <span class="eye right"></span>
+                                <span class="mouth"></span>
+                                <span class="mascot-accessory-visual"></span>
+                            </div>
+                            <p id="mascot-message" class="mascot-message">
+                                Select a subject to meet your companion.
+                            </p>
+                        </div>
+                        <div class="mascot-controls">
+                            <label class="mascot-control">
+                                <span>Palette</span>
+                                <select id="mascot-palette"></select>
+                            </label>
+                            <label class="mascot-control">
+                                <span>Accessory</span>
+                                <select id="mascot-accessory"></select>
+                            </label>
+                        </div>
+                    </section>
+
                     <form id="lecture-form" class="card lecture-form">
                         <div class="field-group">
                             <label for="lecture-date">Lecture date</label>
@@ -91,6 +129,7 @@
                         </div>
                         <button type="submit" class="primary-button">Add Lecture</button>
                     </form>
+                    <p id="lecture-lock-note" class="lock-note"></p>
 
                     <div class="lectures-container">
                         <div class="table-head">
