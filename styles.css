@@ -194,6 +194,66 @@ input:focus {
     color: var(--accent);
 }
 
+.admin-status-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.admin-login-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(46, 15, 19, 0.72);
+    backdrop-filter: blur(6px);
+    z-index: 999;
+}
+
+.admin-login-overlay.hidden {
+    display: none !important;
+}
+
+.admin-login-card {
+    width: min(440px, 100%);
+    padding: 32px;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--border);
+    background: rgba(255, 241, 227, 0.96);
+    box-shadow: 0 24px 44px -28px rgba(92, 20, 25, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: left;
+}
+
+.admin-login-card h1 {
+    margin: 0;
+    font-size: 2.25rem;
+}
+
+.admin-login-copy {
+    margin: 0;
+    color: var(--muted);
+}
+
+.admin-login-error {
+    margin: 0;
+    color: #8c1f28;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.app-shell[aria-hidden='true'] {
+    filter: blur(4px);
+    pointer-events: none;
+    user-select: none;
+}
+
 .content {
     display: grid;
     grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
@@ -583,5 +643,9 @@ input:focus {
 
     .header-controls {
         justify-content: flex-start;
+    }
+
+    .admin-status-group {
+        align-items: flex-start;
     }
 }

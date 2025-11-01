@@ -3,33 +3,45 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UniAttend - Attendance Tracker</title>
+    <title>UniAttend Admin Console</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
 </head>
-<body>
-    <div class="app-shell">
+<body data-role="admin">
+    <div class="admin-login-overlay" id="admin-gate" role="dialog" aria-modal="true" aria-hidden="false">
+        <form id="admin-login-form" class="admin-login-card" aria-labelledby="admin-login-heading">
+            <h1 id="admin-login-heading">Admin Console</h1>
+            <p class="admin-login-copy">
+                Enter the administrator passcode to manage subjects, timetables, and attendance limits.
+            </p>
+            <label class="input-group" for="admin-passcode">
+                <span class="input-label">Passcode</span>
+                <input type="password" id="admin-passcode" autocomplete="current-password" required />
+            </label>
+            <button type="submit" class="primary-button">Unlock Console</button>
+            <p id="admin-login-error" class="admin-login-error hidden" role="alert">Incorrect passcode. Try again.</p>
+        </form>
+    </div>
+
+    <div class="app-shell" aria-hidden="true">
         <header class="app-header">
             <div class="header-text">
-                <h1>UniAttend</h1>
-                <p>Track your lectures, stay above the attendance threshold, and master your semester.</p>
+                <h1>UniAttend Admin</h1>
+                <p>Securely manage subjects, lecture schedules, and attendance allowances.</p>
             </div>
             <div class="header-controls">
+                <div class="admin-status-group">
+                    <span id="admin-status" class="admin-status">Console locked</span>
+                    <button id="admin-logout" type="button" class="secondary-button hidden">Lock Console</button>
+                </div>
                 <div class="limit-controls">
                     <label class="input-group">
                         <span class="input-label">Subject absence limit</span>
-                        <input
-                            type="number"
-                            id="max-absences"
-                            min="0"
-                            value="3"
-                            disabled
-                            title="Select a subject to set its absence limit"
-                        />
+                        <input type="number" id="max-absences" min="0" value="3" disabled />
                     </label>
-                    <button id="apply-max" class="primary-button" disabled title="Select a subject first">Update</button>
+                    <button id="apply-max" class="primary-button" disabled>Update</button>
                 </div>
             </div>
         </header>
@@ -56,7 +68,7 @@
             <section class="subject-detail" id="detail-section">
                 <div class="empty-state" id="empty-state">
                     <h2>Select a subject to begin</h2>
-                    <p>Track attendance by adding lecture dates and marking presence.</p>
+                    <p>Build each subject's timetable and track attendance updates.</p>
                 </div>
 
                 <div class="detail-wrapper hidden" id="detail-wrapper">

@@ -10,17 +10,17 @@ A lightweight, single-page web application for university students to monitor at
 - **Attendance insights** – live attendance percentage, total attended count, and how many more lectures you can miss before the selected subject hits its limit.
 - **Custom subject limits** – set how many lectures you can skip for each subject before risking a shortage.
 - **Built-in safeguards** – UniAttend blocks additional absences once a subject reaches its configured limit, so you never overshoot unintentionally.
-- **Admin-managed timetable** – switch into Admin Mode to create subjects, schedule lectures, or tidy up logs while students simply mark their status.
+- **Dedicated admin console** – manage subjects, lecture schedules, and allowance caps from a private portal while students only mark their attendance.
 - **Local persistence** – all data is stored in your browser, so your plan survives refreshes.
 - **Responsive, aesthetic UI** – modern glassmorphism styling that stays crisp on desktops, tablets, and phones.
 
 ## Getting Started
 
-1. Open `index.html` in your preferred browser (no build step required).
-2. Click **Enter Admin Mode** in the header and use the passcode `admin123` to unlock timetable controls.
-3. Add your subjects from the left panel, then log lecture dates with optional notes for each one.
-4. Exit Admin Mode when you’re done scheduling; students can still mark lectures as Present/Absent without admin access.
-5. Select a subject and adjust its "Subject absence limit" control to fit your university's policy.
+1. Open `index.html` in your preferred browser to access the student-facing tracker (no build step required).
+2. To manage the timetable, open `admin.html`, enter the passcode `admin123`, and unlock the admin console.
+3. Add subjects from the left panel, then log lecture dates with optional notes for each one inside the admin console.
+4. Adjust each subject's "Subject absence limit" from the admin console to enforce your attendance policy.
+5. Lock the console when you finish; students can continue marking lectures as Present/Absent from `index.html` without seeing admin tools.
 
 > Tip: Entries are saved to local storage. Clear your browser storage if you want to start over.
 

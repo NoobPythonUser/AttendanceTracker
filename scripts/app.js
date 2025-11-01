@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'uniAttendState_v1';
 const DEFAULT_MAX_ABSENCES = 3;
 const ADMIN_PASSCODE = 'admin123';
+const isAdminPortal = (document.body.dataset.role ?? 'student') === 'admin';
 
 function getMaxAbsences(subject = null) {
     if (!subject) {
@@ -12,6 +13,7 @@ function getMaxAbsences(subject = null) {
 }
 
 const elements = {
+    appShell: document.querySelector('.app-shell'),
     subjectForm: document.getElementById('subject-form'),
     subjectName: document.getElementById('subject-name'),
     subjectCode: document.getElementById('subject-code'),
@@ -32,6 +34,11 @@ const elements = {
     limitWarning: document.getElementById('limit-warning'),
     adminToggle: document.getElementById('admin-toggle'),
     adminStatus: document.getElementById('admin-status'),
+    adminLogout: document.getElementById('admin-logout'),
+    adminGate: document.getElementById('admin-gate'),
+    adminLoginForm: document.getElementById('admin-login-form'),
+    adminPasscode: document.getElementById('admin-passcode'),
+    adminLoginError: document.getElementById('admin-login-error'),
     subjectLockNote: document.getElementById('subject-lock-note'),
     lectureLockNote: document.getElementById('lecture-lock-note'),
 };
@@ -50,6 +57,48 @@ if (!Array.isArray(state.subjects)) {
 }
 let selectedSubjectId = state.subjects[0]?.id ?? null;
 let isAdmin = false;
+
+function unlockAdmin() {
+    isAdmin = true;
+    if (elements.adminGate) {
+        elements.adminGate.classList.add('hidden');
+        elements.adminGate.setAttribute('aria-hidden', 'true');
+    }
+    if (elements.appShell) {
+        elements.appShell.removeAttribute('aria-hidden');
+    }
+    if (elements.adminLogout) {
+        elements.adminLogout.classList.remove('hidden');
+    }
+    if (elements.adminLoginError) {
+        elements.adminLoginError.classList.add('hidden');
+    }
+    render();
+    if (elements.subjectName) {
+        elements.subjectName.focus();
+    }
+}
+
+function lockAdmin({ focusInput = false } = {}) {
+    isAdmin = false;
+    if (elements.adminGate) {
+        elements.adminGate.classList.remove('hidden');
+        elements.adminGate.setAttribute('aria-hidden', 'false');
+    }
+    if (elements.appShell) {
+        elements.appShell.setAttribute('aria-hidden', 'true');
+    }
+    if (elements.adminLogout) {
+        elements.adminLogout.classList.add('hidden');
+    }
+    if (elements.adminPasscode) {
+        elements.adminPasscode.value = '';
+    }
+    render();
+    if (focusInput && elements.adminPasscode) {
+        elements.adminPasscode.focus();
+    }
+}
 
 function generateId() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -276,6 +325,14 @@ function renderSubjectDetail() {
         const absentButton = lectureNode.querySelector('.absent-button');
         const deleteBtn = lectureNode.querySelector('.delete-lecture');
 
+        deleteBtn.classList.toggle('hidden', !isAdmin);
+        deleteBtn.disabled = !isAdmin;
+        if (!isAdmin) {
+            deleteBtn.setAttribute('aria-hidden', 'true');
+        } else {
+            deleteBtn.removeAttribute('aria-hidden');
+        }
+
         presentButton.addEventListener('click', () => {
             lecture.status = 'present';
             persistState();
@@ -343,34 +400,65 @@ function setFormEnabled(form, enabled) {
 }
 
 function applyAdminPermissions(subject) {
-    setFormEnabled(elements.subjectForm, isAdmin);
-    setFormEnabled(elements.lectureForm, isAdmin);
+    const canEdit = isAdmin;
+    setFormEnabled(elements.subjectForm, canEdit);
+    setFormEnabled(elements.lectureForm, canEdit);
 
     if (elements.subjectLockNote) {
-        elements.subjectLockNote.textContent = isAdmin
-            ? 'Admin mode active — you can add or remove subjects.'
-            : 'Admin access required to add or remove subjects.';
+        let message;
+        if (canEdit) {
+            message = isAdminPortal
+                ? 'Console unlocked — you can add or remove subjects.'
+                : 'Admin mode active — you can add or remove subjects.';
+        } else {
+            message = isAdminPortal
+                ? 'Unlock the admin console to add or remove subjects.'
+                : 'Subject management is handled by administrators.';
+        }
+        elements.subjectLockNote.textContent = message;
     }
 
     if (elements.lectureLockNote) {
+        let message;
         if (!subject) {
-            elements.lectureLockNote.textContent = isAdmin
-                ? 'Select a subject to start building its timetable.'
-                : 'Select a subject to view its timetable.';
+            if (canEdit) {
+                message = 'Select a subject to start building its timetable.';
+            } else {
+                message = isAdminPortal
+                    ? 'Unlock the admin console to manage timetables.'
+                    : 'Select a subject to view its timetable.';
+            }
+        } else if (canEdit) {
+            message = isAdminPortal
+                ? `Console unlocked — add lectures to ${subject.name}'s timetable.`
+                : `Admin mode active — add lectures to ${subject.name}'s timetable.`;
         } else {
-            elements.lectureLockNote.textContent = isAdmin
-                ? `Admin mode active — add lectures to ${subject.name}\'s timetable.`
+            message = isAdminPortal
+                ? 'Unlock the admin console to edit this timetable.'
                 : 'Lecture scheduling is managed by administrators.';
         }
+        elements.lectureLockNote.textContent = message;
     }
 }
 
 function updateAdminIndicator() {
-    if (!elements.adminToggle || !elements.adminStatus) return;
-    elements.adminToggle.textContent = isAdmin ? 'Exit Admin Mode' : 'Enter Admin Mode';
-    elements.adminToggle.setAttribute('aria-pressed', String(isAdmin));
-    elements.adminStatus.textContent = isAdmin ? 'Admin mode active' : 'Student view';
-    elements.adminStatus.classList.toggle('active', isAdmin);
+    if (elements.adminToggle) {
+        elements.adminToggle.textContent = isAdmin ? 'Exit Admin Mode' : 'Enter Admin Mode';
+        elements.adminToggle.setAttribute('aria-pressed', String(isAdmin));
+    }
+
+    if (elements.adminStatus) {
+        if (isAdminPortal) {
+            elements.adminStatus.textContent = isAdmin ? 'Console unlocked' : 'Console locked';
+        } else {
+            elements.adminStatus.textContent = isAdmin ? 'Admin mode active' : 'Student view';
+        }
+        elements.adminStatus.classList.toggle('active', isAdmin);
+    }
+
+    if (elements.adminLogout) {
+        elements.adminLogout.classList.toggle('hidden', !isAdmin);
+    }
 }
 
 function handleAdminToggle() {
@@ -393,52 +481,61 @@ function handleAdminToggle() {
     }
 }
 
-function onMascotPaletteChange() {
-    const subject = state.subjects.find((item) => item.id === selectedSubjectId);
-    const stats = subject ? calculateStats(subject) : null;
-    const value = elements.mascotPalette.value;
-    const config = MASCOT_PALETTES.find((option) => option.value === value);
-
-    if (!config || !config.unlock(stats)) {
-        ensureMascotSelectionValidity(stats);
-        applyMascotAppearance();
+function handleAdminLogin(event) {
+    event.preventDefault();
+    if (!elements.adminPasscode) {
         return;
     }
 
-    state.mascot.palette = value;
-    persistState();
-    applyMascotAppearance();
-    updateMascot(subject, stats);
-}
+    const attempt = elements.adminPasscode.value.trim();
+    elements.adminPasscode.value = '';
 
-function onMascotAccessoryChange() {
-    const subject = state.subjects.find((item) => item.id === selectedSubjectId);
-    const stats = subject ? calculateStats(subject) : null;
-    const value = elements.mascotAccessory.value;
-    const config = MASCOT_ACCESSORIES.find((option) => option.value === value);
-
-    if (!config || !config.unlock(stats)) {
-        ensureMascotSelectionValidity(stats);
-        applyMascotAppearance();
+    if (!attempt) {
+        if (elements.adminLoginError) {
+            elements.adminLoginError.textContent = 'Passcode required to unlock the console.';
+            elements.adminLoginError.classList.remove('hidden');
+        }
+        elements.adminPasscode.focus();
         return;
     }
 
-    state.mascot.accessory = value;
-    persistState();
-    applyMascotAppearance();
-    updateMascot(subject, stats);
+    if (attempt === ADMIN_PASSCODE) {
+        if (elements.adminLoginError) {
+            elements.adminLoginError.classList.add('hidden');
+            elements.adminLoginError.textContent = 'Incorrect passcode. Try again.';
+        }
+        unlockAdmin();
+    } else {
+        if (elements.adminLoginError) {
+            elements.adminLoginError.textContent = 'Incorrect passcode. Try again.';
+            elements.adminLoginError.classList.remove('hidden');
+        }
+        if (elements.adminGate) {
+            elements.adminGate.setAttribute('aria-hidden', 'false');
+        }
+        elements.adminPasscode.focus();
+    }
 }
 
 function updateMaxAbsenceControls(subject) {
+    if (!elements.maxAbsences || !elements.applyMax) {
+        return;
+    }
     const hasSubject = Boolean(subject);
-    elements.maxAbsences.disabled = !hasSubject;
-    elements.applyMax.disabled = !hasSubject;
+    const canEdit = hasSubject && isAdmin;
+    elements.maxAbsences.disabled = !hasSubject || !isAdmin;
+    elements.applyMax.disabled = !canEdit;
 
     if (hasSubject) {
-        elements.maxAbsences.title = `Set how many lectures you can miss in ${subject.name}`;
-        elements.applyMax.title = `Save the absence limit for ${subject.name}`;
+        if (isAdmin) {
+            elements.maxAbsences.title = `Set how many lectures can be missed in ${subject.name}`;
+            elements.applyMax.title = `Save the absence limit for ${subject.name}`;
+        } else {
+            elements.maxAbsences.title = 'Absence limits are managed by administrators.';
+            elements.applyMax.title = 'Admin access required to change the absence limit.';
+        }
     } else {
-        elements.maxAbsences.title = 'Select a subject to set its absence limit';
+        elements.maxAbsences.title = 'Select a subject to view its absence limit';
         elements.applyMax.title = 'Select a subject first';
     }
 }
@@ -506,6 +603,11 @@ function onAddLecture(event) {
 }
 
 function onApplyMaxAbsences() {
+    if (!isAdmin) {
+        alert('Admin access required to change absence limits.');
+        render();
+        return;
+    }
     const value = parseInt(elements.maxAbsences.value, 10);
     if (Number.isNaN(value) || value < 0) {
         alert('Please enter a valid number greater than or equal to 0.');
@@ -528,15 +630,42 @@ function init() {
     if (elements.adminToggle) {
         elements.adminToggle.addEventListener('click', handleAdminToggle);
     }
-    elements.subjectForm.addEventListener('submit', onAddSubject);
-    elements.lectureForm.addEventListener('submit', onAddLecture);
-    elements.applyMax.addEventListener('click', onApplyMaxAbsences);
-    elements.maxAbsences.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            onApplyMaxAbsences();
-        }
-    });
+    if (elements.adminLoginForm) {
+        elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
+    }
+    if (elements.adminPasscode) {
+        elements.adminPasscode.addEventListener('input', () => {
+            if (elements.adminLoginError) {
+                elements.adminLoginError.classList.add('hidden');
+                elements.adminLoginError.textContent = 'Incorrect passcode. Try again.';
+            }
+        });
+    }
+    if (elements.adminLogout) {
+        elements.adminLogout.addEventListener('click', () => {
+            lockAdmin({ focusInput: true });
+        });
+    }
+    if (elements.subjectForm) {
+        elements.subjectForm.addEventListener('submit', onAddSubject);
+    }
+    if (elements.lectureForm) {
+        elements.lectureForm.addEventListener('submit', onAddLecture);
+    }
+    if (elements.applyMax) {
+        elements.applyMax.addEventListener('click', onApplyMaxAbsences);
+    }
+    if (elements.maxAbsences) {
+        elements.maxAbsences.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                onApplyMaxAbsences();
+            }
+        });
+    }
+    if (isAdminPortal && elements.adminPasscode) {
+        elements.adminPasscode.focus();
+    }
     render();
 }
 
