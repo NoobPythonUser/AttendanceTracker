@@ -393,6 +393,42 @@ function handleAdminToggle() {
     }
 }
 
+function onMascotPaletteChange() {
+    const subject = state.subjects.find((item) => item.id === selectedSubjectId);
+    const stats = subject ? calculateStats(subject) : null;
+    const value = elements.mascotPalette.value;
+    const config = MASCOT_PALETTES.find((option) => option.value === value);
+
+    if (!config || !config.unlock(stats)) {
+        ensureMascotSelectionValidity(stats);
+        applyMascotAppearance();
+        return;
+    }
+
+    state.mascot.palette = value;
+    persistState();
+    applyMascotAppearance();
+    updateMascot(subject, stats);
+}
+
+function onMascotAccessoryChange() {
+    const subject = state.subjects.find((item) => item.id === selectedSubjectId);
+    const stats = subject ? calculateStats(subject) : null;
+    const value = elements.mascotAccessory.value;
+    const config = MASCOT_ACCESSORIES.find((option) => option.value === value);
+
+    if (!config || !config.unlock(stats)) {
+        ensureMascotSelectionValidity(stats);
+        applyMascotAppearance();
+        return;
+    }
+
+    state.mascot.accessory = value;
+    persistState();
+    applyMascotAppearance();
+    updateMascot(subject, stats);
+}
+
 function updateMaxAbsenceControls(subject) {
     const hasSubject = Boolean(subject);
     elements.maxAbsences.disabled = !hasSubject;
