@@ -79,7 +79,7 @@ function unlockAdmin() {
     }
 }
 
-function lockAdmin({ focusInput = false } = {}) {
+function lockAdmin({ focusInput = false, suppressRender = false } = {}) {
     isAdmin = false;
     if (elements.adminGate) {
         elements.adminGate.classList.remove('hidden');
@@ -94,7 +94,9 @@ function lockAdmin({ focusInput = false } = {}) {
     if (elements.adminPasscode) {
         elements.adminPasscode.value = '';
     }
-    render();
+    if (!suppressRender) {
+        render();
+    }
     if (focusInput && elements.adminPasscode) {
         elements.adminPasscode.focus();
     }
@@ -541,6 +543,13 @@ function updateMaxAbsenceControls(subject) {
 }
 
 function render() {
+    if (isAdminPortal && !isAdmin && elements.adminGate) {
+        elements.adminGate.classList.remove('hidden');
+        elements.adminGate.setAttribute('aria-hidden', 'false');
+        if (elements.appShell) {
+            elements.appShell.setAttribute('aria-hidden', 'true');
+        }
+    }
     updateAdminIndicator();
     const subject = state.subjects.find((item) => item.id === selectedSubjectId);
     const maxAbsencesValue = getMaxAbsences(subject);
@@ -627,6 +636,9 @@ function onApplyMaxAbsences() {
 }
 
 function init() {
+    if (isAdminPortal) {
+        lockAdmin({ focusInput: true, suppressRender: true });
+    }
     if (elements.adminToggle) {
         elements.adminToggle.addEventListener('click', handleAdminToggle);
     }
