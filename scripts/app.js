@@ -675,6 +675,9 @@ function init() {
             }
         });
     }
+    if (isAdminPortal && elements.adminPasscode) {
+        elements.adminPasscode.focus();
+    }
     render();
 }
 
