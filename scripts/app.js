@@ -2,59 +2,6 @@ const STORAGE_KEY = 'uniAttendState_v1';
 const DEFAULT_MAX_ABSENCES = 3;
 const ADMIN_PASSCODE = 'admin123';
 
-const MASCOT_DEFAULT = {
-    palette: 'ember',
-    accessory: 'none',
-};
-
-const MASCOT_PALETTES = [
-    {
-        value: 'ember',
-        label: 'Ember & Cream',
-        hint: 'Available by default.',
-        unlock: () => true,
-    },
-    {
-        value: 'dawn',
-        label: 'Dawn Blush',
-        hint: 'Reach 75% attendance in a subject to unlock.',
-        unlock: (stats) => Boolean(stats) && stats.percentage >= 75,
-    },
-    {
-        value: 'forest',
-        label: 'Forest Walk',
-        hint: 'Hold 85% attendance across at least 4 logged lectures.',
-        unlock: (stats) => Boolean(stats) && stats.percentage >= 85 && stats.total >= 4,
-    },
-    {
-        value: 'midnight',
-        label: 'Midnight Scholar',
-        hint: 'Maintain a perfect record across 5 or more lectures.',
-        unlock: (stats) => Boolean(stats) && stats.total >= 5 && stats.absent === 0,
-    },
-];
-
-const MASCOT_ACCESSORIES = [
-    {
-        value: 'none',
-        label: 'None',
-        hint: 'Available by default.',
-        unlock: () => true,
-    },
-    {
-        value: 'cap',
-        label: 'Scholar Cap',
-        hint: 'Reach 80% attendance in the selected subject.',
-        unlock: (stats) => Boolean(stats) && stats.percentage >= 80,
-    },
-    {
-        value: 'scarf',
-        label: 'Cozy Scarf',
-        hint: 'Reach 90% attendance to unlock this accessory.',
-        unlock: (stats) => Boolean(stats) && stats.percentage >= 90,
-    },
-];
-
 function getMaxAbsences(subject = null) {
     if (!subject) {
         return state.defaultMaxAbsences ?? DEFAULT_MAX_ABSENCES;
@@ -87,10 +34,6 @@ const elements = {
     adminStatus: document.getElementById('admin-status'),
     subjectLockNote: document.getElementById('subject-lock-note'),
     lectureLockNote: document.getElementById('lecture-lock-note'),
-    mascotCharacter: document.getElementById('mascot-character'),
-    mascotMessage: document.getElementById('mascot-message'),
-    mascotPalette: document.getElementById('mascot-palette'),
-    mascotAccessory: document.getElementById('mascot-accessory'),
 };
 
 const templates = {
@@ -105,9 +48,6 @@ if (typeof state.defaultMaxAbsences !== 'number') {
 if (!Array.isArray(state.subjects)) {
     state.subjects = [];
 }
-if (!state.mascot) {
-    state.mascot = { ...MASCOT_DEFAULT };
-}
 let selectedSubjectId = state.subjects[0]?.id ?? null;
 let isAdmin = false;
 
@@ -116,20 +56,6 @@ function generateId() {
         return crypto.randomUUID();
     }
     return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function normaliseMascotConfig(input) {
-    const paletteValues = new Set(MASCOT_PALETTES.map((option) => option.value));
-    const accessoryValues = new Set(MASCOT_ACCESSORIES.map((option) => option.value));
-
-    if (!input || typeof input !== 'object') {
-        return { ...MASCOT_DEFAULT };
-    }
-
-    return {
-        palette: paletteValues.has(input.palette) ? input.palette : MASCOT_DEFAULT.palette,
-        accessory: accessoryValues.has(input.accessory) ? input.accessory : MASCOT_DEFAULT.accessory,
-    };
 }
 
 function loadState() {
@@ -155,12 +81,9 @@ function loadState() {
                   }))
                 : [];
 
-            const mascot = normaliseMascotConfig(parsed.mascot);
-
             return {
                 defaultMaxAbsences,
                 subjects,
-                mascot,
             };
         } catch (error) {
             console.error('Failed to load attendance state', error);
@@ -169,7 +92,6 @@ function loadState() {
     return {
         defaultMaxAbsences: DEFAULT_MAX_ABSENCES,
         subjects: [],
-        mascot: { ...MASCOT_DEFAULT },
     };
 }
 
@@ -179,7 +101,6 @@ function persistState() {
         JSON.stringify({
             defaultMaxAbsences: state.defaultMaxAbsences,
             subjects: state.subjects,
-            mascot: state.mascot,
         }),
     );
 }
@@ -303,7 +224,6 @@ function renderSubjectDetail() {
         elements.emptyState.classList.remove('hidden');
         elements.detailWrapper.classList.add('hidden');
         elements.limitWarning.classList.add('hidden');
-        updateMascot(null, null);
         return;
     }
 
@@ -335,8 +255,6 @@ function renderSubjectDetail() {
     } else {
         elements.limitWarning.classList.add('hidden');
     }
-
-    updateMascot(subject, stats);
 
     elements.lectureList.innerHTML = '';
 
@@ -413,160 +331,6 @@ function renderSubjectDetail() {
     }
 
     elements.lectureList.appendChild(fragment);
-}
-
-function getMascotMood(stats) {
-    if (!stats || stats.total === 0) {
-        return 'neutral';
-    }
-    if (stats.remainingAllowance === 0 || stats.percentage < 70) {
-        return 'concerned';
-    }
-    if (stats.percentage >= 85) {
-        return 'happy';
-    }
-    return 'calm';
-}
-
-function getMascotMessage(subject, stats) {
-    if (!subject) {
-        return 'Select a subject to meet your companion.';
-    }
-    if (!stats || stats.total === 0) {
-        return `No lectures logged for ${subject.name} yet. Let's build the timetable together.`;
-    }
-    if (stats.remainingAllowance === 0) {
-        return `Limit reached in ${subject.name}. Attend the next lecture to regain allowance.`;
-    }
-    if (stats.percentage >= 90) {
-        const allowanceWord = stats.remainingAllowance === 1 ? 'lecture' : 'lectures';
-        return `Stellar streak! You can still miss ${stats.remainingAllowance} ${allowanceWord} in ${subject.name}.`;
-    }
-    if (stats.percentage >= 75) {
-        return `${subject.name} attendance looks strong. Keep the rhythm going!`;
-    }
-    return `Absences are adding up in ${subject.name}. Let's aim to attend the next session.`;
-}
-
-function applyMascotAppearance() {
-    const { palette, accessory } = state.mascot;
-
-    MASCOT_PALETTES.forEach((option) => {
-        elements.mascotCharacter.classList.remove(`palette-${option.value}`);
-    });
-    MASCOT_ACCESSORIES.forEach((option) => {
-        elements.mascotCharacter.classList.remove(`accessory-${option.value}`);
-    });
-
-    elements.mascotCharacter.classList.add(`palette-${palette}`);
-    elements.mascotCharacter.classList.add(`accessory-${accessory}`);
-
-    if (elements.mascotPalette.value !== palette) {
-        elements.mascotPalette.value = palette;
-    }
-    if (elements.mascotAccessory.value !== accessory) {
-        elements.mascotAccessory.value = accessory;
-    }
-}
-
-function ensureMascotSelectionValidity(stats) {
-    const paletteConfig = MASCOT_PALETTES.find((option) => option.value === state.mascot.palette);
-    const accessoryConfig = MASCOT_ACCESSORIES.find((option) => option.value === state.mascot.accessory);
-
-    let updated = false;
-
-    if (!paletteConfig || !paletteConfig.unlock(stats)) {
-        state.mascot.palette = MASCOT_DEFAULT.palette;
-        updated = true;
-    }
-
-    if (!accessoryConfig || !accessoryConfig.unlock(stats)) {
-        state.mascot.accessory = MASCOT_DEFAULT.accessory;
-        updated = true;
-    }
-
-    if (updated) {
-        persistState();
-    }
-}
-
-function updateMascotCustomizationControls(subject, stats) {
-    const hasSubject = Boolean(subject);
-    const contextStats = hasSubject ? stats : null;
-
-    elements.mascotPalette.disabled = !hasSubject;
-    elements.mascotAccessory.disabled = !hasSubject;
-
-    const lockedTitle = 'Select a subject to customise your companion.';
-    elements.mascotPalette.title = hasSubject ? 'Change your companion\'s palette.' : lockedTitle;
-    elements.mascotAccessory.title = hasSubject ? 'Choose an accessory for your companion.' : lockedTitle;
-
-    ensureMascotSelectionValidity(contextStats);
-
-    Array.from(elements.mascotPalette.options).forEach((optionEl) => {
-        const config = MASCOT_PALETTES.find((item) => item.value === optionEl.value);
-        if (!config) return;
-        const unlocked = config.unlock(contextStats);
-        optionEl.disabled = !unlocked;
-        optionEl.textContent = unlocked ? config.label : `${config.label} 🔒`;
-        optionEl.title = unlocked ? 'Unlocked' : config.hint;
-    });
-
-    Array.from(elements.mascotAccessory.options).forEach((optionEl) => {
-        const config = MASCOT_ACCESSORIES.find((item) => item.value === optionEl.value);
-        if (!config) return;
-        const unlocked = config.unlock(contextStats);
-        optionEl.disabled = !unlocked;
-        optionEl.textContent = unlocked ? config.label : `${config.label} 🔒`;
-        optionEl.title = unlocked ? 'Unlocked' : config.hint;
-    });
-
-    applyMascotAppearance();
-}
-
-function updateMascot(subject, stats) {
-    const mood = getMascotMood(stats);
-    const moodDescriptions = {
-        happy: 'is looking upbeat',
-        calm: 'seems relaxed',
-        concerned: 'looks concerned',
-        neutral: 'is waiting to get started',
-    };
-
-    updateMascotCustomizationControls(subject, stats);
-
-    const moodClasses = ['mood-happy', 'mood-calm', 'mood-concerned', 'mood-neutral'];
-    moodClasses.forEach((className) => elements.mascotCharacter.classList.remove(className));
-    elements.mascotCharacter.classList.add(`mood-${mood}`);
-
-    const message = getMascotMessage(subject, stats);
-    elements.mascotMessage.textContent = message;
-    elements.mascotCharacter.setAttribute('aria-label', `Attendance companion ${moodDescriptions[mood] ?? ''}.`);
-}
-
-function populateMascotOptions() {
-    elements.mascotPalette.innerHTML = '';
-    elements.mascotAccessory.innerHTML = '';
-
-    const paletteFragment = document.createDocumentFragment();
-    MASCOT_PALETTES.forEach((palette) => {
-        const option = document.createElement('option');
-        option.value = palette.value;
-        option.textContent = palette.label;
-        paletteFragment.appendChild(option);
-    });
-    elements.mascotPalette.appendChild(paletteFragment);
-
-    const accessoryFragment = document.createDocumentFragment();
-    MASCOT_ACCESSORIES.forEach((accessory) => {
-        const option = document.createElement('option');
-        option.value = accessory.value;
-        option.textContent = accessory.label;
-        accessoryFragment.appendChild(option);
-    });
-    elements.mascotAccessory.appendChild(accessoryFragment);
-
-    applyMascotAppearance();
 }
 
 function setFormEnabled(form, enabled) {
@@ -761,7 +525,6 @@ function onApplyMaxAbsences() {
 }
 
 function init() {
-    populateMascotOptions();
     if (elements.adminToggle) {
         elements.adminToggle.addEventListener('click', handleAdminToggle);
     }
@@ -774,12 +537,6 @@ function init() {
             onApplyMaxAbsences();
         }
     });
-    if (elements.mascotPalette) {
-        elements.mascotPalette.addEventListener('change', onMascotPaletteChange);
-    }
-    if (elements.mascotAccessory) {
-        elements.mascotAccessory.addEventListener('change', onMascotAccessoryChange);
-    }
     render();
 }
 
